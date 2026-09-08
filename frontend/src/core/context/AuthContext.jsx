@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiClient from '../api/apiClient';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('ssl_token') || null);
+  const [refreshToken, setRefreshToken] = useState(localStorage.getItem('ssl_refresh_token') || null);
   const [loading, setLoading] = useState(true);
   const [elderlyMode, setElderlyMode] = useState(
     localStorage.getItem('ssl_elderly_mode') === 'true'
@@ -13,20 +16,28 @@ export const AuthProvider = ({ children }) => {
     localStorage.getItem('ssl_language') || 'en'
   );
 
+  const fetchProfile = async (accessToken) => {
+    try {
+      const response = await apiClient.get('/users/me', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      setProfile(response.data);
+      if (response.data.isElderly) {
+        setElderlyMode(true);
+        localStorage.setItem('ssl_elderly_mode', 'true');
+      }
+    } catch (err) {
+      console.warn('Could not fetch user profile:', err);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       const savedUser = localStorage.getItem('ssl_user');
       if (savedUser) {
         setUser(JSON.parse(savedUser));
-      } else {
-        // Fallback mock user if storage is cleared but token exists
-        setUser({
-          id: '1',
-          name: 'Biswanath Patra',
-          phone: '+91 9876543210',
-          role: 'CUSTOMER'
-        });
       }
+      fetchProfile(token);
     }
     setLoading(false);
   }, [token]);
@@ -76,39 +87,80 @@ export const AuthProvider = ({ children }) => {
     );
   };
 
-  const login = async (phone, password) => {
+  const login = async (emailOrPhone, password) => {
     setLoading(true);
     try {
-      // In real scenario, make API post call to /api/v1/auth/login.
-      // We implement a fallback to simulated authentication for high-fidelity UI demonstration.
-      const mockUser = {
-        id: 'usr_9982736152',
-        name: 'Biswanath Patra',
-        phone: phone,
-        role: 'CUSTOMER'
+      const isEmail = emailOrPhone.includes('@');
+      const payload = {
+        email: isEmail ? emailOrPhone : null,
+        phoneNumber: !isEmail ? emailOrPhone : null,
+        password: password
       };
-      
-      // Simulate slight networking latency
-      await new Promise((resolve) => setTimeout(resolve, 600));
 
-      const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockTokenStateSmartLife';
-      setUser(mockUser);
-      setToken(mockToken);
-      localStorage.setItem('ssl_token', mockToken);
-      localStorage.setItem('ssl_user', JSON.stringify(mockUser));
+      const res = await apiClient.post('/auth/login', payload);
+      const data = res.data;
+
+      const userObj = {
+        id: data.userId,
+        email: data.email,
+        role: data.role
+      };
+
+      setToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+      setUser(userObj);
+
+      localStorage.setItem('ssl_token', data.accessToken);
+      localStorage.setItem('ssl_refresh_token', data.refreshToken);
+      localStorage.setItem('ssl_user', JSON.stringify(userObj));
+
+      await fetchProfile(data.accessToken);
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.message || 'Authentication error' };
+      const msg = err.response?.data?.message || err.message || 'Authentication failed';
+      return { success: false, error: msg };
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('ssl_token');
-    localStorage.removeItem('ssl_user');
+  const register = async (fullName, email, phoneNumber, password, dateOfBirth) => {
+    setLoading(true);
+    try {
+      const payload = {
+        fullName,
+        email,
+        phoneNumber,
+        password,
+        dateOfBirth
+      };
+
+      const res = await apiClient.post('/auth/register', payload);
+      return { success: true, message: res.data.message };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Registration failed';
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      if (refreshToken) {
+        await apiClient.post('/auth/logout', { refreshToken });
+      }
+    } catch (e) {
+      // Ignore logout errors
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setToken(null);
+      setRefreshToken(null);
+      localStorage.removeItem('ssl_token');
+      localStorage.removeItem('ssl_refresh_token');
+      localStorage.removeItem('ssl_user');
+    }
   };
 
   const toggleElderlyMode = () => {
@@ -120,9 +172,11 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ 
       user, 
+      profile,
       token, 
       loading, 
       login, 
+      register,
       logout, 
       elderlyMode, 
       toggleElderlyMode,

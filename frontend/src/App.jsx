@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './core/context/AuthContext';
-import WelcomeScreen from './features/home/WelcomeScreen';
-import HomeDashboard from './features/home/HomeDashboard';
+import LandingPage from './features/home/LandingPage';
+import CustomerDashboard from './features/dashboard/CustomerDashboard';
+import RoleGuard from './core/components/RoleGuard';
 import EmergencyScreen from './features/emergency/EmergencyScreen';
 import HealthcareScreen from './features/healthcare/HealthcareScreen';
 import ShoppingScreen from './features/shopping/ShoppingScreen';
@@ -12,7 +13,6 @@ import EventsScreen from './features/events/EventsScreen';
 import DeliveryScreen from './features/delivery/DeliveryScreen';
 import TrustScreen from './features/trust/TrustScreen';
 
-// A wrapper component to guard routes that require active session tokens
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuth();
   
@@ -28,12 +28,14 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<WelcomeScreen />} />
+          <Route path="/" element={<LandingPage />} />
           <Route 
             path="/dashboard" 
             element={
               <ProtectedRoute>
-                <HomeDashboard />
+                <RoleGuard allowedRoles={['CITIZEN', 'CUSTOMER', 'USER']}>
+                  <CustomerDashboard />
+                </RoleGuard>
               </ProtectedRoute>
             } 
           />
@@ -101,7 +103,6 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          {/* Catch all route - redirects to welcome */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
