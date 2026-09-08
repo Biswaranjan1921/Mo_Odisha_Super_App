@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-navy: #180d0d; /* Dark stone wall base */
+  --color-brand-terracotta: #b91c1c; /* Traditional clay terracotta */
+  --color-brand-marigold: #d97706; /* Sacred marigold orange */
+  --color-brand-gold: #ca8a04; /* Sacred brass gold */
+  --color-brand-blue: #3b82f6;
+  --color-brand-emerald: #10b981;
+  --color-brand-crimson: #b91c1c;
+  --color-brand-amber: #d97706;
+
+  --font-display: "Outfit", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  
+  --animate-gradient-shift: gradient-shift 8s ease infinite;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0606;
+}
+::-webkit-scrollbar-thumb {
+  background: #451a1a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b91c1c;
+}
+
+/* Odisha Temple Theme Radial Background */
+body {
+  font-family: var(--font-sans);
+  background: radial-gradient(circle at top right, #3f0707 0%, #110303 60%, #050000 100%);
+  background-attachment: fixed;
+  color: #f8fafc;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+/* Custom Utilities for Premium Glassmorphism styling */
+@utility glass-card {
+  background: rgba(45, 15, 15, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@utility glass-card-hover {
+  background: rgba(45, 15, 15, 0.6);
+  border-color: rgba(217, 119, 6, 0.3);
+  box-shadow: 0 12px 40px 0 rgba(217, 119, 6, 0.2);
+  transform: translateY(-2px);
+}
+
+@utility glass-input {
+  background: rgba(17, 3, 3, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  transition: all 0.2s ease-in-out;
+}
+
+@utility glass-input-focus {
+  border-color: var(--color-brand-marigold);
+  box-shadow: 0 0 10px 0 rgba(217, 119, 6, 0.3);
+  outline: none;
+}
+
+@utility text-glow-terracotta {
+  text-shadow: 0 0 12px rgba(185, 28, 28, 0.7);
+}
+
+@utility text-glow-marigold {
+  text-shadow: 0 0 12px rgba(217, 119, 6, 0.7);
+}
+
+@utility text-glow-gold {
+  text-shadow: 0 0 12px rgba(202, 138, 4, 0.7);
+}
+
+/* Sambalpuri Border Pattern utility */
+@utility border-sambalpuri {
+  border-image: repeating-linear-gradient(45deg, #b91c1c, #b91c1c 10px, #ca8a04 10px, #ca8a04 20px, #000000 20px, #000000 30px) 15;
+}
