@@ -72,6 +72,26 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_APPOINTMENT_TIME", ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(com.statesmartlife.emergency.exception.EmergencyRequestNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEmergencyNotFound(com.statesmartlife.emergency.exception.EmergencyRequestNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "EMERGENCY_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.emergency.exception.InvalidEmergencyTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidEmergencyTransition(com.statesmartlife.emergency.exception.InvalidEmergencyTransitionException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_EMERGENCY_TRANSITION", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.emergency.exception.UnauthorizedEmergencyAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedEmergencyAccess(com.statesmartlife.emergency.exception.UnauthorizedEmergencyAccessException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "UNAUTHORIZED_EMERGENCY_ACCESS", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.emergency.exception.ActiveEmergencyAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleActiveEmergencyAlreadyExists(com.statesmartlife.emergency.exception.ActiveEmergencyAlreadyExistsException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "ACTIVE_EMERGENCY_ALREADY_EXISTS", ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication credentials invalid or missing", request, null);

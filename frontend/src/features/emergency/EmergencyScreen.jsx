@@ -1,24 +1,56 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../core/context/AuthContext';
+import apiClient from '../../core/api/apiClient';
 import { 
   ArrowLeft, AlertTriangle, ShieldCheck, MapPin, 
-  PhoneCall, ShieldAlert, Truck, X, Volume2
+  PhoneCall, ShieldAlert, Truck, X, Volume2, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
 const EmergencyScreen = () => {
   const { elderlyMode, speak } = useAuth();
   const navigate = useNavigate();
   const [sosActive, setSosActive] = useState(false);
-  const [sosProgress, setSosProgress] = useState(0); // 0: Idle, 1: Dispatched, 2: In-Route
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [activeEmergency, setActiveEmergency] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   
-  const latitude = 20.2961;
-  const longitude = 85.8245;
+  const [latitude, setLatitude] = useState(20.2961);
+  const [longitude, setLongitude] = useState(85.8245);
   
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerInstanceRef = useRef(null);
+
+  useEffect(() => {
+    fetchMyEmergency();
+    
+    // Capture device geolocation if available
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLatitude(pos.coords.latitude);
+          setLongitude(pos.coords.longitude);
+        },
+        (err) => console.warn('Using default Bhubaneswar coordinates:', err)
+      );
+    }
+  }, []);
+
+  const fetchMyEmergency = async () => {
+    try {
+      const res = await apiClient.get('/emergency/me?page=0&size=1');
+      if (res.data?.content && res.data.content.length > 0) {
+        const latest = res.data.content[0];
+        if (['REPORTED', 'DISPATCHED', 'EN_ROUTE', 'ON_SCENE'].includes(latest.status)) {
+          setActiveEmergency(latest);
+          setSosActive(true);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch active emergency status:', err);
+    }
+  };
 
   useEffect(() => {
     if (!window.L || !mapContainerRef.current) return;
@@ -43,7 +75,7 @@ const EmergencyScreen = () => {
 
       markerInstanceRef.current = window.L.marker([latitude, longitude], { icon: customIcon })
         .addTo(mapInstanceRef.current)
-        .bindPopup('Your Current Verified Location')
+        .bindPopup('Your Verified GPS Location')
         .openPopup();
     }
 
@@ -53,44 +85,64 @@ const EmergencyScreen = () => {
         mapInstanceRef.current = null;
       }
     };
-  }, [elderlyMode]);
+  }, [latitude, longitude, elderlyMode]);
 
-  useEffect(() => {
-    let interval = null;
-    if (sosActive) {
-      interval = setInterval(() => {
-        setSecondsElapsed((prev) => {
-          const nextSec = prev + 1;
-          if (nextSec === 5) {
-            setSosProgress(1);
-            speak('Emergency center response. Operator Patnaik is monitoring your location.', 'ଜରୁରୀକାଳୀନ କେନ୍ଦ୍ର ଉତ୍ତର। ଅପରେଟର ପଟ୍ଟନାୟକ ଆପଣଙ୍କ ସ୍ଥାନ ଉପରେ ନଜର ରଖିଛନ୍ତି।');
-          } else if (nextSec === 12) {
-            setSosProgress(2);
-            speak('Ambulance dispatched from Capital Hospital. Arrival in 5 minutes.', 'କ୍ୟାପିଟାଲ୍ ହସ୍ପିଟାଲ୍‌ରୁ ଆମ୍ବୁଲାନ୍ସ ପଠାଯାଇଛି। ୫ ମିନିଟ୍ ମଧ୍ୟରେ ପହଞ୍ଚିବ।');
-          }
-          return nextSec;
-        });
-      }, 1000);
-    } else {
-      setSecondsElapsed(0);
-      setSosProgress(0);
-    }
-    return () => clearInterval(interval);
-  }, [sosActive]);
-
-  const handlePanicTrigger = () => {
-    if (!sosActive) {
-      setSosActive(true);
-      speak('SOS Activated. Transmitting GPS coordinates. Help is on the way.', 'SOS ସକ୍ରିୟ ହୋଇଛି। ଜିପିଏସ ସ୍ଥାନ ପଠାଯାଉଛି। ସାହାଯ୍ୟ ଆସୁଛି।');
-    } else {
+  const handlePanicTrigger = async () => {
+    setErrorMessage('');
+    if (sosActive && activeEmergency) {
       handleCancelSOS();
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await apiClient.post('/emergency/sos', {
+        emergencyType: 'MEDICAL',
+        latitude: latitude,
+        longitude: longitude,
+        addressText: 'Master Canteen Square, Bhubaneswar'
+      });
+
+      if (res.data) {
+        setActiveEmergency(res.data);
+        setSosActive(true);
+        speak('SOS Activated. Transmitting GPS coordinates. Help is on the way.', 'SOS ସକ୍ରିୟ ହୋଇଛି। ଜିପିଏସ ସ୍ଥାନ ପଠାଯାଉଛି। ସାହାଯ୍ୟ ଆସୁଛି।');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Emergency trigger failed. Connection error.';
+      setErrorMessage(msg);
+
+      // Local fallback simulation if offline or test environment
+      if (!err.response) {
+        const fallback = {
+          id: 'emg-' + Date.now(),
+          status: 'REPORTED',
+          emergencyType: 'MEDICAL',
+          latitude,
+          longitude,
+          addressText: 'Bhubaneswar Smart City Location'
+        };
+        setActiveEmergency(fallback);
+        setSosActive(true);
+        speak('SOS Activated locally.', 'SOS ସକ୍ରିୟ ହୋଇଛି।');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCancelSOS = () => {
+  const handleCancelSOS = async () => {
+    setErrorMessage('');
+    if (activeEmergency?.id && !activeEmergency.id.startsWith('emg-')) {
+      try {
+        await apiClient.put(`/emergency/${activeEmergency.id}/cancel`);
+      } catch (err) {
+        console.warn('Backend cancel failed:', err);
+      }
+    }
+
     setSosActive(false);
-    setSosProgress(0);
-    setSecondsElapsed(0);
+    setActiveEmergency(null);
     speak('Emergency broadcast cancelled.', 'ଜରୁରୀକାଳୀନ ପ୍ରସାରଣ ବାତିଲ ହେଲା।');
   };
 
@@ -116,7 +168,7 @@ const EmergencyScreen = () => {
         </div>
 
         <button 
-          onClick={() => speak('Emergency SOS Panel. Tap the large center button to trigger an emergency alert. Tap the blue telephone button at the bottom to call direct.', 'ଜରୁରୀକାଳୀନ SOS ପ୍ୟାନେଲ୍। ଜରୁରୀକାଳୀନ ଆଲର୍ଟ ପାଇଁ ମଝିରେ ଥିବା ବଡ଼ ବଟନକୁ ଚିପନ୍ତୁ। ସିଧାସଳଖ କଲ୍ କରିବା ପାଇଁ ତଳେ ଥିବା ନୀଳ ଟେଲିଫୋନ୍ ବଟନକୁ ଚିପନ୍ତୁ।')}
+          onClick={() => speak('Emergency SOS Panel. Tap the large center button to trigger an emergency alert. Tap the blue telephone button at the bottom to call direct.', 'ଜରୁରୀକାଳୀନ SOS ପ୍ୟାନେଲ୍। ଜରୁରୀକାଳୀନ ଆଲର୍ଟ ପାଇଁ ମଝିରେ ଥିବା ବଡ଼ ବଟନକୁ ଚିପନ୍ତୁ।')}
           className="p-2.5 rounded-full bg-brand-blue/10 border border-brand-blue/20 text-brand-blue cursor-pointer animate-pulse-slow"
         >
           <Volume2 className="w-5 h-5" />
@@ -140,13 +192,20 @@ const EmergencyScreen = () => {
               </div>
             )}
 
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold flex items-center gap-2 relative z-20">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {errorMessage}
+              </div>
+            )}
+
             <div className="mb-6 relative z-10">
               <h3 className={`font-black text-slate-100 ${elderlyMode ? 'text-3xl font-black' : 'text-xl'}`}>
                 {sosActive ? '🚨 SOS TRANSMITTING 🚨' : '🔴 PANIC SWITCH 🔴'}
               </h3>
               <p className={`text-slate-400 mt-1.5 ${elderlyMode ? 'text-lg font-medium' : 'text-xs'}`}>
                 {sosActive 
-                  ? 'Help is on the way. Tracking...' 
+                  ? 'Help is on the way. Tracking telemetry...' 
                   : 'Tap the big button below for immediate rescue assistance'
                 }
               </p>
@@ -155,6 +214,7 @@ const EmergencyScreen = () => {
             {/* Panic Button */}
             <button
               onClick={handlePanicTrigger}
+              disabled={loading}
               className={`w-48 h-48 rounded-full border-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 relative z-10 select-none ${
                 sosActive 
                   ? 'bg-brand-crimson border-brand-crimson/35 shadow-[0_0_40px_rgba(239,68,68,0.5)] scale-95 text-glow-crimson'
@@ -163,7 +223,7 @@ const EmergencyScreen = () => {
             >
               <AlertTriangle className="w-14 h-14 text-slate-950" />
               <span className="text-slate-950 font-black tracking-wider text-sm mt-1">
-                {sosActive ? 'TAP TO CANCEL' : 'PRESS HELP'}
+                {loading ? 'SENDING...' : sosActive ? 'TAP TO CANCEL' : 'PRESS HELP'}
               </span>
             </button>
 
@@ -198,12 +258,12 @@ const EmergencyScreen = () => {
                         GPS Coordinates Dispatched 🗺️
                       </p>
                       <p className={`text-slate-400 ${elderlyMode ? 'text-lg' : 'text-xs'}`}>
-                        Sent lat: {latitude}, lng: {longitude} at {secondsElapsed}s
+                        Lat: {latitude.toFixed(4)}, Lng: {longitude.toFixed(4)} | Status: {activeEmergency?.status || 'REPORTED'}
                       </p>
                     </div>
                   </div>
 
-                  {sosProgress >= 1 && (
+                  {activeEmergency?.status && activeEmergency.status !== 'REPORTED' && (
                     <div className="flex items-start gap-3.5 transition-all">
                       <div className="p-1 rounded-full bg-brand-emerald/15 border border-brand-emerald/30 text-brand-emerald mt-1">
                         <ShieldCheck className="w-4 h-4" />
@@ -213,23 +273,23 @@ const EmergencyScreen = () => {
                           State Command Center Response 🏛️
                         </p>
                         <p className={`text-slate-400 ${elderlyMode ? 'text-lg' : 'text-xs'}`}>
-                          Operator matched: Comm Officer Patnaik
+                          Assigned Service: {activeEmergency.responseService || 'AMBULANCE'}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {sosProgress >= 2 && (
+                  {['EN_ROUTE', 'ON_SCENE', 'RESOLVED'].includes(activeEmergency?.status) && (
                     <div className="flex items-start gap-3.5 transition-all">
                       <div className="p-1 rounded-full bg-brand-crimson/15 border border-brand-crimson/30 text-brand-crimson mt-1 animate-pulse">
                         <Truck className="w-4 h-4 animate-bounce" />
                       </div>
                       <div>
                         <p className={`font-bold text-slate-100 ${elderlyMode ? 'text-xl animate-pulse text-brand-crimson' : 'text-sm'}`}>
-                          Ambulance in Transit 🚑
+                          Unit In Transit ({activeEmergency.status}) 🚑
                         </p>
                         <p className={`text-slate-400 ${elderlyMode ? 'text-lg' : 'text-xs'}`}>
-                          Capital Hospital Unit #2B (2.8 km away). ETA 5 mins
+                          {activeEmergency.dispatcherNotes || 'Capital Hospital Unit Dispatched'}
                         </p>
                       </div>
                     </div>
