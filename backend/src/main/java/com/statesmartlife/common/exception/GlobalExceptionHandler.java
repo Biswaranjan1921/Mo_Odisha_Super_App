@@ -92,6 +92,26 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, "ACTIVE_EMERGENCY_ALREADY_EXISTS", ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(com.statesmartlife.trust.exception.TrustScoreNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTrustScoreNotFound(com.statesmartlife.trust.exception.TrustScoreNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "TRUST_SCORE_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.trust.exception.IncidentTicketNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleIncidentTicketNotFound(com.statesmartlife.trust.exception.IncidentTicketNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "INCIDENT_TICKET_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.trust.exception.InvalidDisputeTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDisputeTransition(com.statesmartlife.trust.exception.InvalidDisputeTransitionException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_DISPUTE_TRANSITION", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.trust.exception.UnauthorizedTrustAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedTrustAccess(com.statesmartlife.trust.exception.UnauthorizedTrustAccessException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "UNAUTHORIZED_TRUST_ACCESS", ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication credentials invalid or missing", request, null);
