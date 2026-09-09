@@ -1,0 +1,68 @@
+-- V13__Governance_District_Analytics.sql
+
+-- 1. Master Odisha Districts Table
+CREATE TABLE IF NOT EXISTS tbl_odisha_districts (
+    id UUID PRIMARY KEY,
+    district_code VARCHAR(10) NOT NULL UNIQUE,
+    district_name VARCHAR(100) NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Complete District Analytics Table
+CREATE TABLE IF NOT EXISTS tbl_district_analytics (
+    id UUID PRIMARY KEY,
+    district_id UUID NOT NULL UNIQUE REFERENCES tbl_odisha_districts(id) ON DELETE CASCADE,
+    total_citizens INT NOT NULL DEFAULT 0,
+    total_stores INT NOT NULL DEFAULT 0,
+    total_orders INT NOT NULL DEFAULT 0,
+    total_revenue NUMERIC(14,2) NOT NULL DEFAULT 0.00,
+    active_sos_alerts INT NOT NULL DEFAULT 0,
+    telehealth_bookings INT NOT NULL DEFAULT 0,
+    disputes_under_review INT NOT NULL DEFAULT 0,
+    verified_guides INT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Seed All 30 Official Districts of Odisha
+INSERT INTO tbl_odisha_districts (id, district_code, district_name) VALUES
+    ('00000000-0000-0000-0000-000000000101', 'OD-KHO', 'Khordha'),
+    ('00000000-0000-0000-0000-000000000102', 'OD-CTC', 'Cuttack'),
+    ('00000000-0000-0000-0000-000000000103', 'OD-PURI', 'Puri'),
+    ('00000000-0000-0000-0000-000000000104', 'OD-GNJ', 'Ganjam'),
+    ('00000000-0000-0000-0000-000000000105', 'OD-SBP', 'Sambalpur'),
+    ('00000000-0000-0000-0000-000000000106', 'OD-MYR', 'Mayurbhanj'),
+    ('00000000-0000-0000-0000-000000000107', 'OD-SNG', 'Sundargarh'),
+    ('00000000-0000-0000-0000-000000000108', 'OD-BLS', 'Balasore'),
+    ('00000000-0000-0000-0000-000000000109', 'OD-KRP', 'Koraput'),
+    ('00000000-0000-0000-0000-000000000110', 'OD-RYG', 'Rayagada'),
+    ('00000000-0000-0000-0000-000000000111', 'OD-KLD', 'Kalahandi'),
+    ('00000000-0000-0000-0000-000000000112', 'OD-BLR', 'Bolangir'),
+    ('00000000-0000-0000-0000-000000000113', 'OD-KDJ', 'Kendujhar'),
+    ('00000000-0000-0000-0000-000000000114', 'OD-JJP', 'Jajpur'),
+    ('00000000-0000-0000-0000-000000000115', 'OD-BHK', 'Bhadrak'),
+    ('00000000-0000-0000-0000-000000000116', 'OD-KNP', 'Kendrapara'),
+    ('00000000-0000-0000-0000-000000000117', 'OD-JGP', 'Jagatsinghpur'),
+    ('00000000-0000-0000-0000-000000000118', 'OD-DNK', 'Dhenkanal'),
+    ('00000000-0000-0000-0000-000000000119', 'OD-ANG', 'Angul'),
+    ('00000000-0000-0000-0000-000000000120', 'OD-NYG', 'Nayagarh'),
+    ('00000000-0000-0000-0000-000000000121', 'OD-GJP', 'Gajapati'),
+    ('00000000-0000-0000-0000-000000000122', 'OD-KDM', 'Kandhamal'),
+    ('00000000-0000-0000-0000-000000000123', 'OD-BDH', 'Boudh'),
+    ('00000000-0000-0000-0000-000000000124', 'OD-SNP', 'Subarnapur'),
+    ('00000000-0000-0000-0000-000000000125', 'OD-NPD', 'Nuapada'),
+    ('00000000-0000-0000-0000-000000000126', 'OD-NBP', 'Nabarangpur'),
+    ('00000000-0000-0000-0000-000000000127', 'OD-MLK', 'Malkangiri'),
+    ('00000000-0000-0000-0000-000000000128', 'OD-JHG', 'Jharsuguda'),
+    ('00000000-0000-0000-0000-000000000129', 'OD-DGH', 'Deogarh'),
+    ('00000000-0000-0000-0000-000000000130', 'OD-BRG', 'Bargarh');
+
+-- 4. Seed Initial District Analytics Baseline Records
+INSERT INTO tbl_district_analytics (id, district_id, total_citizens, total_stores, total_orders, total_revenue, active_sos_alerts, telehealth_bookings, disputes_under_review, verified_guides) VALUES
+    ('00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000101', 450000, 1200, 8500, 1250000.00, 2, 450, 3, 42),
+    ('00000000-0000-0000-0000-000000000202', '00000000-0000-0000-0000-000000000102', 380000, 950, 6200, 890000.00, 1, 310, 1, 28),
+    ('00000000-0000-0000-0000-000000000203', '00000000-0000-0000-0000-000000000103', 290000, 710, 4800, 720000.00, 0, 210, 2, 55),
+    ('00000000-0000-0000-0000-000000000204', '00000000-0000-0000-0000-000000000104', 320000, 820, 5100, 640000.00, 1, 280, 0, 19);
+
+CREATE INDEX IF NOT EXISTS idx_district_analytics_id ON tbl_district_analytics (district_id);
