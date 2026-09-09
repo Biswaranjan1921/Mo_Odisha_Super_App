@@ -1,56 +1,116 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../core/context/AuthContext';
-import { ArrowLeft, Calendar, User, Clock, HeartPulse, CheckCircle2 } from 'lucide-react';
+import apiClient from '../../core/api/apiClient';
+import { ArrowLeft, Calendar, User, Clock, HeartPulse, CheckCircle2, AlertCircle } from 'lucide-react';
+
+const FALLBACK_DOCTORS = [
+  { id: 'doc-1', name: 'Dr. Alok Mishra', specialization: 'Cardiologist', consultationFee: 500, availabilitySchedule: 'Mon, Wed, Fri (10:00 AM - 02:00 PM)' },
+  { id: 'doc-2', name: 'Dr. Suchitra Dash', specialization: 'Paediatrician', consultationFee: 400, availabilitySchedule: 'Tue, Thu, Sat (10:00 AM - 01:00 PM)' },
+  { id: 'doc-3', name: 'Dr. Priyabrata Sen', specialization: 'General Physician', consultationFee: 300, availabilitySchedule: 'Daily (09:00 AM - 01:00 PM)' }
+];
 
 const HealthcareScreen = () => {
   const { elderlyMode } = useAuth();
   const navigate = useNavigate();
-  
-  const [doctors] = useState([
-    { id: 'doc-1', name: 'Dr. Alok Mishra', spec: 'Cardiologist', fee: 500, availability: 'Mon, Wed, Fri' },
-    { id: 'doc-2', name: 'Dr. Suchitra Dash', spec: 'Paediatrician', fee: 400, availability: 'Tue, Thu, Sat' },
-    { id: 'doc-3', name: 'Dr. Priyabrata Sen', spec: 'General Physician', fee: 300, availability: 'Daily' }
-  ]);
 
-  const [selectedDocId, setSelectedDocId] = useState(doctors[0].id);
+  const [doctors, setDoctors] = useState(FALLBACK_DOCTORS);
+  const [selectedDocId, setSelectedDocId] = useState('');
   const [appointmentDate, setAppointmentDate] = useState('');
-  const [timeSlot, setTimeSlot] = useState('10:00 AM');
+  const [timeSlot, setTimeSlot] = useState('10:00');
   const [symptoms, setSymptoms] = useState('');
   const [appointments, setAppointments] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('ssl_appointments');
-    if (saved) {
-      setAppointments(JSON.parse(saved));
-    }
+    fetchDoctors();
+    fetchMyAppointments();
   }, []);
 
-  const handleBook = (e) => {
+  const fetchDoctors = async () => {
+    try {
+      const res = await apiClient.get('/healthcare/doctors?page=0&size=20');
+      if (res.data?.content && res.data.content.length > 0) {
+        setDoctors(res.data.content);
+        setSelectedDocId(res.data.content[0].id);
+      } else if (doctors.length > 0) {
+        setSelectedDocId(doctors[0].id);
+      }
+    } catch (err) {
+      console.warn('Using local fallback doctor directory:', err);
+      if (doctors.length > 0) {
+        setSelectedDocId(doctors[0].id);
+      }
+    }
+  };
+
+  const fetchMyAppointments = async () => {
+    try {
+      const res = await apiClient.get('/healthcare/appointments/me?page=0&size=20');
+      if (res.data?.content) {
+        setAppointments(res.data.content);
+      }
+    } catch (err) {
+      const saved = localStorage.getItem('ssl_appointments');
+      if (saved) {
+        setAppointments(JSON.parse(saved));
+      }
+    }
+  };
+
+  const handleBook = async (e) => {
     e.preventDefault();
-    if (!appointmentDate || !symptoms) return;
+    setErrorMessage('');
+    if (!selectedDocId || !appointmentDate || !symptoms) {
+      setErrorMessage('Please select a doctor, date, and provide symptoms description.');
+      return;
+    }
 
-    const doc = doctors.find(d => d.id === selectedDocId);
-    const newAppointment = {
-      id: 'apt-' + Date.now(),
-      doctorName: doc.name,
-      specialization: doc.spec,
-      date: appointmentDate,
-      time: timeSlot,
-      symptoms: symptoms,
-      fee: doc.fee
-    };
+    setLoading(true);
+    const appointmentTimeIso = `${appointmentDate}T${timeSlot}:00`;
 
-    const updated = [newAppointment, ...appointments];
-    setAppointments(updated);
-    localStorage.setItem('ssl_appointments', JSON.stringify(updated));
-    
-    // Reset Form
-    setSymptoms('');
-    setAppointmentDate('');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    try {
+      const res = await apiClient.post('/healthcare/appointments', {
+        doctorId: selectedDocId,
+        appointmentTime: appointmentTimeIso,
+        symptomsDescription: symptoms
+      });
+
+      if (res.data) {
+        setAppointments([res.data, ...appointments]);
+      }
+
+      setSymptoms('');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 4000);
+    } catch (err) {
+      const apiErr = err.response?.data?.message || err.response?.data?.error || 'Appointment booking failed. Slot may be occupied.';
+      setErrorMessage(apiErr);
+
+      // Local fallback simulation if offline
+      if (!err.response) {
+        const doc = doctors.find(d => d.id === selectedDocId) || doctors[0];
+        const localApt = {
+          id: 'apt-' + Date.now(),
+          doctorName: doc.name,
+          doctorSpecialization: doc.specialization,
+          appointmentTime: appointmentTimeIso,
+          symptomsDescription: symptoms,
+          consultationFee: doc.consultationFee,
+          status: 'BOOKED'
+        };
+        const updated = [localApt, ...appointments];
+        setAppointments(updated);
+        localStorage.setItem('ssl_appointments', JSON.stringify(updated));
+        setSymptoms('');
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 4000);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -90,6 +150,13 @@ const HealthcareScreen = () => {
               </div>
             )}
 
+            {errorMessage && (
+              <div className="mb-6 p-4 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-sm font-semibold flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                {errorMessage}
+              </div>
+            )}
+
             <form onSubmit={handleBook} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
@@ -102,7 +169,7 @@ const HealthcareScreen = () => {
                 >
                   {doctors.map(d => (
                     <option key={d.id} value={d.id}>
-                      {d.name} ({d.spec}) — ₹{d.fee}
+                      {d.name} ({d.specialization}) — ₹{d.consultationFee}
                     </option>
                   ))}
                 </select>
@@ -130,10 +197,15 @@ const HealthcareScreen = () => {
                     onChange={(e) => setTimeSlot(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 text-slate-200 text-sm font-semibold focus:outline-none"
                   >
-                    <option value="10:00 AM">10:00 AM</option>
-                    <option value="11:30 AM">11:30 AM</option>
-                    <option value="02:00 PM">02:00 PM</option>
-                    <option value="04:30 PM">04:30 PM</option>
+                    <option value="10:00">10:00 AM</option>
+                    <option value="10:30">10:30 AM</option>
+                    <option value="11:00">11:00 AM</option>
+                    <option value="11:30">11:30 AM</option>
+                    <option value="12:00">12:00 PM</option>
+                    <option value="12:30">12:30 PM</option>
+                    <option value="14:00">02:00 PM</option>
+                    <option value="14:30">02:30 PM</option>
+                    <option value="15:00">03:00 PM</option>
                   </select>
                 </div>
               </div>
@@ -154,9 +226,10 @@ const HealthcareScreen = () => {
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-xl bg-brand-emerald text-slate-950 font-black text-sm hover:opacity-95 shadow-[0_4px_20px_rgba(16,185,129,0.25)] transition-all cursor-pointer"
+                disabled={loading}
+                className="w-full py-3.5 rounded-xl bg-brand-emerald text-slate-950 font-black text-sm hover:opacity-95 shadow-[0_4px_20px_rgba(16,185,129,0.25)] transition-all cursor-pointer disabled:opacity-50"
               >
-                CONFIRM BOOKING
+                {loading ? 'BOOKING APPOINTMENT...' : 'CONFIRM BOOKING'}
               </button>
             </form>
           </div>
@@ -181,26 +254,42 @@ const HealthcareScreen = () => {
                   <div key={apt.id} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
                       <div>
-                        <p className="text-sm font-bold text-slate-200">{apt.doctorName}</p>
-                        <p className="text-[10px] text-brand-emerald font-semibold uppercase tracking-wider">{apt.specialization}</p>
+                        <p className="text-sm font-bold text-slate-200">{apt.doctorName || 'Dr. Assigned'}</p>
+                        <p className="text-[10px] text-brand-emerald font-semibold uppercase tracking-wider">{apt.doctorSpecialization || 'Specialist'}</p>
                       </div>
-                      <span className="text-xs font-bold text-brand-blue">
-                        ₹{apt.fee} Paid
-                      </span>
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-brand-blue block">
+                          ₹{apt.consultationFee || apt.fee || '0.00'}
+                        </span>
+                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                          apt.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
+                          apt.status === 'CONFIRMED' ? 'bg-blue-500/20 text-blue-400' :
+                          apt.status === 'CANCELLED' ? 'bg-red-500/20 text-red-400' :
+                          'bg-amber-500/20 text-amber-400'
+                        }`}>
+                          {apt.status || 'BOOKED'}
+                        </span>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{apt.date}</span>
+                        <span>{apt.appointmentTime ? apt.appointmentTime.split('T')[0] : apt.date}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{apt.time}</span>
+                        <span>{apt.appointmentTime ? apt.appointmentTime.split('T')[1]?.substring(0, 5) : apt.time}</span>
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 bg-slate-900/60 p-2.5 rounded-lg border border-white/5">
-                      <span className="font-bold text-slate-400">Symptoms:</span> {apt.symptoms}
+                      <span className="font-bold text-slate-400">Symptoms:</span> {apt.symptomsDescription || apt.symptoms}
                     </p>
+                    {apt.prescriptionNotes && (
+                      <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+                        <span className="font-bold block text-emerald-400 mb-1">Rx Digital Prescription:</span>
+                        <p>{apt.prescriptionNotes}</p>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

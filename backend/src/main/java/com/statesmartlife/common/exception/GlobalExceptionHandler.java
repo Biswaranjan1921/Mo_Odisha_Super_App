@@ -47,6 +47,31 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Access to requested resource is forbidden", request, null);
     }
 
+    @ExceptionHandler(com.statesmartlife.healthcare.exception.DoctorNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleDoctorNotFound(com.statesmartlife.healthcare.exception.DoctorNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "DOCTOR_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.healthcare.exception.AppointmentSlotUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleSlotUnavailable(com.statesmartlife.healthcare.exception.AppointmentSlotUnavailableException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.healthcare.exception.UnauthorizedHealthcareAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedHealthcareAccess(com.statesmartlife.healthcare.exception.UnauthorizedHealthcareAccessException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "UNAUTHORIZED_HEALTHCARE_ACCESS", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.healthcare.exception.InvalidAppointmentTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAppointmentTransition(com.statesmartlife.healthcare.exception.InvalidAppointmentTransitionException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_APPOINTMENT_TRANSITION", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.healthcare.exception.InvalidAppointmentTimeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAppointmentTime(com.statesmartlife.healthcare.exception.InvalidAppointmentTimeException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_APPOINTMENT_TIME", ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication credentials invalid or missing", request, null);
