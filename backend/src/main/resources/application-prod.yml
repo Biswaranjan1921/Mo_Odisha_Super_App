@@ -31,3 +31,17 @@ logging:
   level:
     root: WARN
     com.statesmartlife: INFO
+
+server:
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never

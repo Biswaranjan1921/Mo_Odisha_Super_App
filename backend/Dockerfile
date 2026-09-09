@@ -18,7 +18,7 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Copy the build artifact from build stage
-COPY --from=build /app/target/state-smart-life-0.0.1.jar app.jar
+COPY --from=build /app/target/state-smart-life-*.jar app.jar
 
 # Expose API port
 EXPOSE 8080

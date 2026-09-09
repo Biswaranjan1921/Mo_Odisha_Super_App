@@ -29,6 +29,23 @@ public class OpenApiConfig {
                                 .name("Apache 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0")))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                .tags(java.util.List.of(
+                        new io.swagger.v3.oas.models.tags.Tag().name("Auth").description("Authentication & Multi-Role RBAC"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Commerce").description("Stores & Vendor Management"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Orders").description("Cart & Order Management Engine"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Citizen Services").description("Public Grievances & Service Filings"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Notifications").description("In-App & Push Notifications"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Identity").description("Document Locker & Digital Identity Vault"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Payments").description("Digital Wallet & Double-Entry Ledger"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Logistics").description("Delivery Agent Assignment & Real-Time Tracking"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Community").description("Citizen Forums & Moderation Engine"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Healthcare").description("Hospitals, Doctors & Telehealth Appointments"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Emergency").description("SOS Alert Dispatch & Responder Operations"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Trust").description("Incident Dispute Tickets & Citizen Trust Score"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Tourism").description("Tour Guides, Profiles & Destination Discovery"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Transport").description("Mo Bus Routes & Smart Event Venues"),
+                        new io.swagger.v3.oas.models.tags.Tag().name("Governance").description("State Overview & 30 District Analytics Portal")
+                ))
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME_NAME,
                                 new SecurityScheme()

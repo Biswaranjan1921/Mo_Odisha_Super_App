@@ -1,0 +1,86 @@
+name: Mo Odisha Super App Enterprise CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-test:
+    name: 1. Backend Build & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Execute Backend Unit Tests
+        run: |
+          cd backend
+          mvn clean test
+
+  frontend-build:
+    name: 2. Frontend Build & Type Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies & Build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+  docker-validation:
+    name: 3. Docker Compose Stack Health Validation
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build & Launch Docker Compose Stack
+        run: |
+          cp .env.example .env
+          docker compose up --build -d
+
+      - name: Validate Container Readiness Probes
+        run: |
+          sleep 25
+          docker compose ps
+          curl -f http://localhost:8081/api/v1/actuator/health/readiness || exit 1
+
+  security-scans:
+    name: 4. Security & Vulnerability Scanning
+    runs-on: ubuntu-latest
+    needs: [docker-validation]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Container Vulnerability Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'ssl-backend-app:latest'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
