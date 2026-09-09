@@ -112,6 +112,61 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "UNAUTHORIZED_TRUST_ACCESS", ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(com.statesmartlife.tourism.exception.TourismPlaceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTourismPlaceNotFound(com.statesmartlife.tourism.exception.TourismPlaceNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "TOURISM_PLACE_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.tourism.exception.TourGuideNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTourGuideNotFound(com.statesmartlife.tourism.exception.TourGuideNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "TOUR_GUIDE_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.tourism.exception.GuideApplicationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleGuideAppNotFound(com.statesmartlife.tourism.exception.GuideApplicationNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "GUIDE_APPLICATION_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.tourism.exception.GuideApplicationAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleGuideAppExists(com.statesmartlife.tourism.exception.GuideApplicationAlreadyExistsException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "GUIDE_APPLICATION_ALREADY_EXISTS", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.tourism.exception.GuideBookingSlotUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleGuideSlotUnavailable(com.statesmartlife.tourism.exception.GuideBookingSlotUnavailableException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "GUIDE_BOOKING_SLOT_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.tourism.exception.UnauthorizedTourismAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedTourismAccess(com.statesmartlife.tourism.exception.UnauthorizedTourismAccessException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "UNAUTHORIZED_TOURISM_ACCESS", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.transport.exception.RouteNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRouteNotFound(com.statesmartlife.transport.exception.RouteNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "ROUTE_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.events.exception.VenueNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleVenueNotFound(com.statesmartlife.events.exception.VenueNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "VENUE_NOT_FOUND", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.events.exception.VenueDateUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleVenueDateUnavailable(com.statesmartlife.events.exception.VenueDateUnavailableException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "VENUE_DATE_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.events.exception.InvalidVenueBookingTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidVenueTransition(com.statesmartlife.events.exception.InvalidVenueBookingTransitionException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_VENUE_BOOKING_TRANSITION", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(com.statesmartlife.events.exception.UnauthorizedEventAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedEventAccess(com.statesmartlife.events.exception.UnauthorizedEventAccessException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "UNAUTHORIZED_EVENT_ACCESS", ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication credentials invalid or missing", request, null);
