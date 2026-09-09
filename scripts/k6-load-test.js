@@ -93,7 +93,7 @@ export default function (data) {
 
     // Scenario 4: Governance Analytics Matrix (Authenticated Admin Path)
     group('04_GovernanceOverview', function () {
-        const res = http.get(`${BASE_URL}/governance/overview`, { headers: authHeaders });
+        const res = http.get(`${BASE_URL}/governance/analytics/overview`, { headers: authHeaders });
         const success = check(res, { 'Governance 200 OK or 2xx': (r) => r.status >= 200 && r.status < 300 });
         operationalErrorRate.add(!success && res.status >= 500);
         apiLatencyTrend.add(res.timings.duration);

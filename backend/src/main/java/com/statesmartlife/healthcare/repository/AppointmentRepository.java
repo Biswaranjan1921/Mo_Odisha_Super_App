@@ -19,4 +19,6 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
     Page<AppointmentEntity> findByPatientIdOrderByAppointmentTimeDesc(UUID patientId, Pageable pageable);
 
     Page<AppointmentEntity> findByDoctorIdOrderByAppointmentTimeDesc(UUID doctorId, Pageable pageable);
+
+    long countByStatusIn(Collection<AppointmentStatus> statuses);
 }

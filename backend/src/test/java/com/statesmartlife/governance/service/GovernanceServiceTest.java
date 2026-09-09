@@ -83,19 +83,11 @@ class GovernanceServiceTest {
         OrderEntity pendingOrder = OrderEntity.builder().status(OrderStatus.PENDING_PAYMENT).totalAmount(new BigDecimal("2500.00")).build();
         OrderEntity cancelledOrder = OrderEntity.builder().status(OrderStatus.CANCELLED).totalAmount(new BigDecimal("500.00")).build();
 
-        when(orderRepository.findAll()).thenReturn(List.of(paidOrder, pendingOrder, cancelledOrder));
-
-        EmergencyRequestEntity activeSos = EmergencyRequestEntity.builder().status(EmergencyStatus.REPORTED).build();
-        when(emergencyRepository.findAll()).thenReturn(List.of(activeSos));
-
-        AppointmentEntity appointment = AppointmentEntity.builder().status(AppointmentStatus.CONFIRMED).build();
-        when(appointmentRepository.findAll()).thenReturn(List.of(appointment));
-
-        IncidentTicketEntity ticket = IncidentTicketEntity.builder().status(TicketStatus.UNDER_REVIEW).build();
-        when(incidentTicketRepository.findAll()).thenReturn(List.of(ticket));
-
-        TourismGuideEntity guide = TourismGuideEntity.builder().isVerified(true).isAvailable(true).build();
-        when(guideRepository.findByIsVerifiedTrueAndIsAvailableTrue()).thenReturn(List.of(guide));
+        when(orderRepository.sumTotalAmountByStatus(OrderStatus.PAID)).thenReturn(new BigDecimal("1500.00"));
+        when(emergencyRepository.countByStatusIn(any())).thenReturn(1L);
+        when(appointmentRepository.countByStatusIn(any())).thenReturn(1L);
+        when(incidentTicketRepository.countByStatus(TicketStatus.UNDER_REVIEW)).thenReturn(1L);
+        when(guideRepository.countByIsVerifiedTrueAndIsAvailableTrue()).thenReturn(1L);
 
         StateOverviewResponse response = governanceService.getStateOverview();
 

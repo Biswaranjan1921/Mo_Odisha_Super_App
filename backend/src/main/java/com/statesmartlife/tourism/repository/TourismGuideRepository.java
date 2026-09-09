@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface TourismGuideRepository extends JpaRepository<TourismGuideEntity, UUID> {
     Optional<TourismGuideEntity> findByUserId(UUID userId);
     List<TourismGuideEntity> findByIsVerifiedTrueAndIsAvailableTrue();
+    long countByIsVerifiedTrueAndIsAvailableTrue();
 }

@@ -19,6 +19,7 @@ import com.statesmartlife.tourism.repository.TourismGuideRepository;
 import com.statesmartlife.trust.enums.TicketStatus;
 import com.statesmartlife.trust.repository.IncidentTicketRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,46 +43,42 @@ public class GovernanceServiceImpl implements GovernanceService {
     private final TourismGuideRepository guideRepository;
 
     @Override
+    @Cacheable(value = "governance_overview", key = "'state_overview'")
     @Transactional(readOnly = true)
     public StateOverviewResponse getStateOverview() {
         long totalCitizens = userRepository.count();
         long totalStores = storeRepository.count();
         long totalOrders = orderRepository.count();
 
-        // Calculate commerce revenue strictly from PAID orders
-        BigDecimal totalRevenue = orderRepository.findAll().stream()
-                .filter(o -> o.getStatus() == OrderStatus.PAID)
-                .map(OrderEntity::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Calculate commerce revenue strictly from PAID orders via DB aggregation
+        BigDecimal totalRevenue = orderRepository.sumTotalAmountByStatus(OrderStatus.PAID);
 
-        // Active SOS Emergency requests
-        long activeSos = emergencyRepository.findAll().stream()
-                .filter(e -> e.getStatus() == EmergencyStatus.REPORTED ||
-                             e.getStatus() == EmergencyStatus.DISPATCHED ||
-                             e.getStatus() == EmergencyStatus.EN_ROUTE ||
-                             e.getStatus() == EmergencyStatus.ON_SCENE)
-                .count();
+        // Active SOS Emergency requests via DB count query
+        long activeSos = emergencyRepository.countByStatusIn(List.of(
+                EmergencyStatus.REPORTED,
+                EmergencyStatus.DISPATCHED,
+                EmergencyStatus.EN_ROUTE,
+                EmergencyStatus.ON_SCENE
+        ));
 
-        // Telehealth Bookings (BOOKED, CONFIRMED, COMPLETED)
-        long telehealthBookings = appointmentRepository.findAll().stream()
-                .filter(a -> a.getStatus() == AppointmentStatus.BOOKED ||
-                             a.getStatus() == AppointmentStatus.CONFIRMED ||
-                             a.getStatus() == AppointmentStatus.COMPLETED)
-                .count();
+        // Telehealth Bookings (BOOKED, CONFIRMED, COMPLETED) via DB count query
+        long telehealthBookings = appointmentRepository.countByStatusIn(List.of(
+                AppointmentStatus.BOOKED,
+                AppointmentStatus.CONFIRMED,
+                AppointmentStatus.COMPLETED
+        ));
 
-        // Disputes under review
-        long disputesUnderReview = incidentTicketRepository.findAll().stream()
-                .filter(t -> t.getStatus() == TicketStatus.UNDER_REVIEW)
-                .count();
+        // Disputes under review via DB count query
+        long disputesUnderReview = incidentTicketRepository.countByStatus(TicketStatus.UNDER_REVIEW);
 
-        // Verified tour guides
-        long verifiedGuides = guideRepository.findByIsVerifiedTrueAndIsAvailableTrue().size();
+        // Verified tour guides via DB count query
+        long verifiedGuides = guideRepository.countByIsVerifiedTrueAndIsAvailableTrue();
 
         return StateOverviewResponse.builder()
                 .totalCitizens(totalCitizens)
                 .totalStores(totalStores)
                 .totalOrders(totalOrders)
-                .totalCommerceRevenue(totalRevenue)
+                .totalCommerceRevenue(totalRevenue != null ? totalRevenue : BigDecimal.ZERO)
                 .activeSosEmergencies(activeSos)
                 .telehealthBookings(telehealthBookings)
                 .disputesUnderReview(disputesUnderReview)

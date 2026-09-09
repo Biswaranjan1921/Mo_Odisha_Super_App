@@ -23,4 +23,6 @@ public interface EmergencyRequestRepository extends JpaRepository<EmergencyReque
     Page<EmergencyRequestEntity> findByStatusInOrderByReportedAtDesc(Collection<EmergencyStatus> statuses, Pageable pageable);
 
     Page<EmergencyRequestEntity> findAllByOrderByReportedAtDesc(Pageable pageable);
+
+    long countByStatusIn(Collection<EmergencyStatus> statuses);
 }
